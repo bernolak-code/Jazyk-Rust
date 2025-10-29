@@ -1,19 +1,15 @@
-use std::{
-    fs::read,
-    io::{Read, Write, stdin, stdout},
-    path::{Path, PathBuf},
-    str::FromStr,
-};
 
-use chrono::{Local, NaiveDate, TimeDelta};
+use std::
+    path::PathBuf
+;
+
 use clap::Parser;
-use task::{
-    control, {Task, TaskManager},
-};
-use task_manager_config::{AppConfig, Commands};
+use console_reader::ConsoleReader;
+use task_library::control;
+use app_config::{AppConfig, Commands};
 
-mod task;
-mod task_manager_config;
+mod app_config;
+mod console_reader;
 
 fn main() {
     // spustim aplikaciu s prikazom print-tasks - aplikacia nacita tasky z json suboru a vypise ich
@@ -53,7 +49,7 @@ fn main() {
         Commands::RemoveTaskById { task_id } => {
             control::remove_task_by_id(&args.path.unwrap(), task_id)
         }
-        Commands::Interactive => {}
+        Commands::Interactive => 
     };
 
     // let mut tm = TaskManager::new();
@@ -68,3 +64,4 @@ fn main() {
     // let new_task_manager: TaskManager = serde_json::from_str(&serialized_json).unwrap();
     // println!("{new_task_manager:?}");
 }
+

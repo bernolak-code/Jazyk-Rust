@@ -1,5 +1,6 @@
 pub mod control;
 
+use core::task;
 use std::{
     fs::File,
     io::{BufRead, BufReader, Write, stdin, stdout},
@@ -81,6 +82,13 @@ impl TaskManager {
 
     pub fn add_task(&mut self, task: Task) {
         self.tasks.push(task);
+    }
+
+    pub fn remove_task(&mut self, id: i32) {
+        if let Some(index) = self.tasks.iter().position(|t| t.id == id) {
+            let removed = self.tasks.remove(index);
+            println!("Removed task {} with id: {}", removed.name, removed.id);
+        }
     }
 
     pub fn get_task_by_id(&self, id: i32) -> Option<&Task> {
@@ -197,16 +205,27 @@ fn parse_timedelta(string: &str) -> TimeDelta {
     TimeDelta::days(number.into())
 }
 
-fn create_task_from_console() -> Task {
+pub fn create_task_from_console() -> Task {
     let id = read_number("  ID of Task: ");
     let name = read_string("  Name of Task: ");
     let description = read_string("  Description of Task: ");
     let priority = read_number("  Priority of Task: ");
-    let planned_from = read_date("  Date from: ");
-    let planned_duration = read_timedelta("  Planned duration: ");
-    let real_from = None;
-    let real_duration = None;
+    let planned_from = read_date("  Date from (dd.mm.yyyy): ");
+    let planned_duration = read_timedelta("  Planned duration (days): ");
 
+    let real_from_input = read_string("  Real date from (dd.mm.yyyy or '-' for none): ");
+    let real_from = if real_from_input.trim() == "-" {
+        None
+    } else {
+        Some(parse_date(&real_from_input))
+    };
+
+    let real_duration_input = read_string("  Real duration (days or '-' for none): ");
+    let real_duration = if real_duration_input.trim() == "-" {
+        None
+    } else {
+        Some(parse_timedelta(&real_duration_input))
+    };
     Task {
         id,
         name,

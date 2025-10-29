@@ -1,6 +1,6 @@
 use std::{fs::File, path::PathBuf};
 
-use crate::task::{TaskManager, create_task_from_console};
+use crate::task::{create_task_from_console, TaskManager};
 
 fn deserialize_json(path: &PathBuf) -> TaskManager {
     let tm: TaskManager;
