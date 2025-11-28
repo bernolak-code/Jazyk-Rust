@@ -1,5 +1,5 @@
 use crate::schema::tasks::dsl::{id, tasks};
-use crate::task::ReadTaskFromUser;
+use crate::task::{ReadTaskFromUser, Task};
 use crate::{db::estabilish_connection, models::TaskDb, task::TaskManager};
 use diesel::associations::HasTable;
 use diesel::{connection, prelude::*};
@@ -49,29 +49,9 @@ pub fn show_task_by_id(task_id: usize) {
         .filter(id.eq(task_id as i32))
         .first::<TaskDb>(connection)
         .optional()
+        .expect("Failed to load task")
         .expect("Failed to load task");
 
-    match task {
-        Some(t) => {
-            println!(
-                "Id: {}\n\
-             Name: {}\n\
-             Priority: {}\n\
-             Planned start: {}\n\
-             Planned duration: {} days\n\
-             Real start: {}\n\
-             Real duration: {} days\n\
-             Description: {}\n",
-                t.id,
-                t.nazov,
-                t.priorita,
-                t.planovany_zaciatok,
-                t.planovane_trvanie / 86_400,
-                t.skutocny_zaciatok.as_deref().unwrap_or("None"),
-                t.skutocne_trvanie.map(|s| s / 86_400).unwrap_or(0),
-                t.popis
-            );
-        }
-        None => println!("Task {} not found", task_id),
-    }
+    let task: Task = (&task).into();
+    println!("{}", task.get_print_string());
 }
