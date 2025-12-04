@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Task Manager API Frontend</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 30px;
+        background: #f5f5f5;
+      }
+      h1 {
+        color: #333;
+      }
+      .section {
+        background: white;
+        padding: 20px;
+        margin-bottom: 25px;
+        border-radius: 8px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      }
+      input, button {
+        padding: 8px;
+        margin: 5px 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 10px;
+      }
+      table, th, td {
+        border: 1px solid #aaa;
+      }
+      th, td {
+        padding: 8px;
+      }
+      th {
+        background: #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Task Manager Frontend</h1>
+
+    <div class="section">
+      <h2>Check API Status</h2>
+      <button onclick="checkHello()">Check /hello</button>
+      <p id="helloResponse"></p>
+    </div>
+
+    <div class="section">
+      <h2>All Tasks</h2>
+      <button onclick="loadTasks()">Load Tasks</button>
+      <table id="tasksTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Názov</th>
+            <th>Popis</th>
+            <th>Priorita</th>
+            <th>Plánovaný Začiatok</th>
+            <th>Plánované Trvanie</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Get Task by ID</h2>
+      <input type="number" id="searchId" placeholder="Enter ID">
+      <button onclick="getTaskById()">Search</button>
+      <pre id="taskByIdOutput"></pre>
+    </div>
+
+    <div class="section">
+      <h2>Add Task</h2>
+      <form id="addTaskForm" onsubmit="addTask(event)">
+        <input type="number" name="id" placeholder="ID" required><br>
+        <input type="text" name="nazov" placeholder="Názov" required><br>
+        <input type="text" name="popis" placeholder="Popis" required><br>
+        <input type="number" name="priorita" placeholder="Priorita" required><br>
+        <input type="date" name="planovany_zaciatok" required><br>
+        <input type="number" name="planovane_trvanie" placeholder="Trvanie (min)" required><br>
+        <input type="date" name="skutocny_zaciatok" placeholder="Skutočný začiatočok"><br>
+        <input type="number" name="skutocne_trvanie" placeholder="Skutočné trvanie (min)"><br>
+        <button type="submit">Add Task</button>
+      </form>
+      <p id="addTaskResponse"></p>
+    </div>
+
+    <div class="section">
+      <h2>Delete Task</h2>
+      <input type="number" id="deleteId" placeholder="Enter ID to delete">
+      <button onclick="deleteTask()">Delete</button>
+      <p id="deleteResponse"></p>
+    </div>
+
+    <script>
+      const API = "http://127.0.0.1:8080";
+
+      async function checkHello() {
+        const res = await fetch(`${API}/hello`);
+        document.getElementById("helloResponse").innerText = await res.text();
+      }
+
+     
+      async function loadTasks() {
+        console.log("Loading tasks...");
+
+        const res = await fetch(`${API}/get_tasks`);
+        if (!res.ok) {
+          console.error("Failed to load tasks", res.status);
+          return;
+        }
+
+        const tasks = await res.json();
+        console.log("Tasks:", tasks);
+
+        const tbody = document.querySelector("#tasksTable tbody");
+        tbody.innerHTML = "";
+
+        tasks.forEach(t => {
+          const plannedDuration = Array.isArray(t.planovane_trvanie) ? t.planovane_trvanie[0] : t.planovane_trvanie;
+          const actualDuration = Array.isArray(t.skutocne_trvanie) ? t.skutocne_trvanie[0] : t.skutocne_trvanie || "";
+
+          const row = `
+<tr>
+<td>${t.id}</td>
+<td>${t.nazov}</td>
+<td>${t.popis}</td>
+<td>${t.priorita}</td>
+<td>${t.planovany_zaciatok}</td>
+<td>${plannedDuration}</td>
+</tr>
+`;
+          tbody.innerHTML += row;
+        });
+      }
+
+      async function getTaskById() {
+        const id = document.getElementById("searchId").value;
+        const res = await fetch(`${API}/get_task_by_id/${id}`);
+
+        if (res.status === 404) {
+          document.getElementById("taskByIdOutput").innerText = "Task not found";
+          return;
+        }
+
+        const task = await res.json();
+        document.getElementById("taskByIdOutput").innerText = JSON.stringify(task, null, 2);
+      }
+
+      async function addTask(event) {
+        event.preventDefault();
+        const form = new FormData(document.getElementById("addTaskForm"));
+
+        const data = Object.fromEntries(form.entries());
+        if (data.skutocny_zaciatok === "") data.skutocny_zaciatok = null;
+        if (data.skutocne_trvanie === "") data.skutocne_trvanie = null;
+        data.planovane_trvanie = Number(data.planovane_trvanie);
+        data.priorita = Number(data.priorita);
+        data.id = Number(data.id);
+
+        const res = await fetch(`${API}/add_task`, {
+          method: "PUT",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(data),
+        });
+
+        document.getElementById("addTaskResponse").innerText = await res.text();
+        await loadTasks();
+      }
+
+      async function deleteTask() {
+        const id = document.getElementById("deleteId").value;
+
+        const res = await fetch(`${API}/delete_task/${id}`, {
+          method: "DELETE"
+        });
+
+        document.getElementById("deleteResponse").innerText = await res.text();
+        await loadTasks();
+      }
+    </script>
+  </body>
+</html>

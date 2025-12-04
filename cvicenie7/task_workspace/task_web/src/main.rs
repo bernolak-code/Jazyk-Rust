@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+use actix_cors::Cors;
+use actix_files::Files;
 use actix_web::{App, HttpResponse, HttpServer, Responder, ResponseError, delete, get, put, web};
 use chrono::{NaiveDate, TimeDelta};
 use serde::{Deserialize, Serialize};
@@ -141,13 +143,25 @@ async fn delete_task(path: web::Path<usize>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
     let openapi = ApiDoc::openapi();
     // let app_state = web::Data::new(Mutex::new(AppState {
     //     task_manager: TaskManager::new(),
     // }));
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header();
+
         App::new()
+            .wrap(actix_web::middleware::Logger::default())
+            .service(
+                Files::new("/app", "./static")
+                    .index_file("index.html")
+                    .show_files_listing(),
+            )
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
             )
@@ -157,7 +171,7 @@ async fn main() -> std::io::Result<()> {
             .service(add_task)
             .service(delete_task)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 8081))?
     .run()
     .await
 }
